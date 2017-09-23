@@ -16,13 +16,13 @@ using namespace std;
 typedef Matrix<double, 6, 1> Vector6d;
 
 Eigen::Matrix3d I3x3 = Eigen::Matrix<double, 3, 3>::Identity();
-Eigen::Matrix3d Z3x3 = Eigen::Matrix<double, 3, 3>::Identity();
+Eigen::Matrix3d Z3x3 = Eigen::Matrix<double, 3, 3>::Zero();
 Eigen::Vector3d I3(1.0, 1.0, 1.0);
 Eigen::Vector3d Z3(0.0, 0.0, 0.0);
 
 ImuPreintegration::ImuPreintegration()
 {
-    double default_gyro_noise = (2/180*pi);
+    double default_gyro_noise = (2.0/180*pi);
     double default_acc_noise = 0.1;
 
     delta_tij = 0;
@@ -75,6 +75,7 @@ ImuPreintegration::ImuPreintegration(Eigen::Matrix3d acc_cov_input, Eigen::Matri
 
 void ImuPreintegration::Preintegration( Eigen::Vector3d acc, Eigen::Vector3d gyro, double delta_t )
 {
+
     delta_tij += delta_t;
     double t2_2 = delta_t*delta_t/2;
     SE3Quat exp_temp;

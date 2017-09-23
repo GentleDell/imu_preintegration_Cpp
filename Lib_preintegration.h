@@ -46,7 +46,7 @@ private:
     Eigen::Vector3d delta_pij, delta_vij, bias_a, bias_g, bias_a_previous, bias_g_previous;
     Eigen::Matrix3d delta_Rij;
     Eigen::Matrix3d raw_acc_cov, raw_gyro_cov;
-    Eigen::MatrixXd IMU_cov_ij;
+    Eigen::MatrixXd IMU_cov_ij;     // SIGMA of pre-mea noise
 
     struct Derivative{
        Eigen::Matrix3d DRij_Dbg;
