@@ -100,6 +100,12 @@ void ImuPreintegration::Preintegration( Eigen::Vector3d acc, Eigen::Vector3d gyr
     int size = 9;   // demension of Ak
     Eigen::MatrixXd Ak(size,size), Bk(size,3), Ck(size,3);
 
+    // easy to check, TO BE delet{
+    Ak << Z3x3,Z3x3,Z3x3,Z3x3,Z3x3,Z3x3,Z3x3,Z3x3,Z3x3;
+    Bk << Z3x3,Z3x3,Z3x3;
+    Ck << Z3x3,Z3x3,Z3x3;
+    // }
+
     Ak.topLeftCorner(size/3, size/3) = Rk_k_1_T;
     Ak.block(0,3,3,3) = Z3x3;  // from (0, 0)
     Ak.topRightCorner(size/3, size/3) = Z3x3;
