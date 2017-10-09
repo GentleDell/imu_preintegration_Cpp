@@ -5,7 +5,17 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 
+#define _g 1
+
 using namespace std;
+typedef Eigen::Matrix<double, 6, 1> Vector6d;
+typedef Eigen::Matrix<double, 9, 1> Vector9d;
+
+Eigen::Matrix3d I3x3 = Eigen::Matrix<double, 3, 3>::Identity();
+Eigen::Matrix3d Z3x3 = Eigen::Matrix<double, 3, 3>::Zero();
+Eigen::Vector3d I3(1.0, 1.0, 1.0);
+Eigen::Vector3d Z3(0.0, 0.0, 0.0);
+
 
 class ImuPreintegration{
 
@@ -20,17 +30,35 @@ public:
         cout << "ImuPreintegration has been destructed!" << endl;
     }
 
+    ImuPreintegration( const ImuPreintegration& origin_IMUP );  // copy
+
+    // reset the imupreintegraion to the original state
+    void Reset();
+
     // preintegration & update covariance of Imu residual errors
     void Preintegration(Eigen::Vector3d acc, Eigen::Vector3d gyro, double delta_t );
 
     // feen state at i & j, obtain the Imu residual error and its Jaccobian to some variants
     void IMUResdual_Jaccobian(Eigen::Matrix3d R_i, Eigen::Matrix3d R_j, Eigen::Vector3d p_i, Eigen::Vector3d p_j,  Eigen::Vector3d v_i, Eigen::Vector3d v_j);
 
-    // feed R p v in i, return predicted R p v in j (in the form of "se3 vel_vector")
-    Eigen::VectorXd preict(Eigen::Matrix3d R_i, Eigen::Vector3d p_i, Eigen::Vector3d v_i);
+    // feed R p v in time i, return predicted R p v in time j (in the form of "se3 vel_vector")
+    Vector9d predict(Eigen::Matrix3d R_i, Eigen::Vector3d p_i, Eigen::Vector3d v_i);
+
+    // feed modifcaction, directly applied to this object.
+    // If you want to generate a new object, just use copy construct function then call this func in new object.
+    void update( Eigen::Matrix3d phiv_modify, Eigen::Vector3d p_modify, Eigen::Vector3d v_modify, Eigen::Vector3d bia_acc_modify, Eigen::Vector3d bia_gyro_modify );
 
     Eigen::Matrix3d Dexp( Eigen::Vector3d theta );
     Eigen::Matrix3d Dlog( Eigen::Vector3d theta );
+
+    Eigen::Matrix3d Rij_read() { return delta_Rij; }
+    Eigen::Vector3d pij_read() { return delta_pij; }
+    Eigen::Vector3d vij_read() { return delta_vij; }
+    double tij_read() { return delta_tij; }
+
+    void Rij_write(Eigen::Matrix3d new_Rij) { delta_Rij = new_Rij; }
+    void pij_write(Eigen::Vector3d new_pij) { delta_pij = new_pij; }
+    void vij_write(Eigen::Vector3d new_vij) { delta_vij = new_vij; }
 
     // after every optimiztion, we will have a new bias. To compensate residualerror essily, we need compute the delta_bias, so we record last bias
     void write_bias_previous()
@@ -39,6 +67,8 @@ public:
         bias_g_previous = bias_g;
     }
 
+    // public para
+    Eigen::Vector3d g;
 
 private:
 
