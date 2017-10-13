@@ -20,15 +20,15 @@ ImuPreintegration::ImuPreintegration()
 
     g << 0, 0, -_g;
     delta_tij = 0;
-    delta_pij = Eigen::Vector3d(0,0,0);
-    delta_vij = Eigen::Vector3d(0,0,0);
-    bias_a = Eigen::Vector3d(0,0,0);
-    bias_g = Eigen::Vector3d(0,0,0);
-    bias_a_previous = Eigen::Vector3d(0,0,0);
-    bias_g_previous = Eigen::Vector3d(0,0,0);
-    delta_Rij = Eigen::Matrix<double, 3, 3>::Identity();
+    delta_Rij = I3x3;
+    delta_pij = Z3;
+    delta_vij = Z3;
+    bias_a = Z3;
+    bias_g = Z3;
+    bias_a_previous = Z3;
+    bias_g_previous = Z3;
     ResiError << Z3,Z3,Z3;
-    IMU_cov_ij = Eigen::Matrix<double, 9, 9>::Identity(); // simply initiate to identity
+    IMU_cov_ij = Eigen::Matrix<double, 9, 9>::Zero(); // simply initiate to Zero
 
     // derivative init
     df_dx.DRij_Dbg = Z3x3;
@@ -38,23 +38,23 @@ ImuPreintegration::ImuPreintegration()
     df_dx.Dvij_Dbg = Z3x3;
 
     // covariance of imu measurement
-    raw_acc_cov = default_acc_noise * default_acc_noise * Eigen::Matrix<double, 3, 3>::Identity();
-    raw_gyro_cov = default_gyro_noise * default_gyro_noise * Eigen::Matrix<double, 3, 3>::Identity();
+    raw_acc_cov = default_acc_noise * default_acc_noise * I3x3;
+    raw_gyro_cov = default_gyro_noise * default_gyro_noise * I3x3;
 }
 
 ImuPreintegration::ImuPreintegration(Eigen::Matrix3d acc_cov_input, Eigen::Matrix3d gyro_cov_input)
 {
     g << 0, 0, -_g;
     delta_tij = 0;
-    delta_pij = Eigen::Vector3d(0,0,0);
-    delta_vij = Eigen::Vector3d(0,0,0);
-    bias_a = Eigen::Vector3d(0,0,0);
-    bias_g = Eigen::Vector3d(0,0,0);
-    bias_a_previous = Eigen::Vector3d(0,0,0);
-    bias_g_previous = Eigen::Vector3d(0,0,0);
-    delta_Rij = Eigen::Matrix<double, 3, 3>::Identity();
+    delta_Rij = I3x3;
+    delta_pij = Z3;
+    delta_vij = Z3;
+    bias_a = Z3;
+    bias_g = Z3;
+    bias_a_previous = Z3;
+    bias_g_previous = Z3;
     ResiError << Z3,Z3,Z3;
-    IMU_cov_ij = Eigen::Matrix<double, 9, 9>::Identity(); // simply initiate to identity
+    IMU_cov_ij = Eigen::Matrix<double, 9, 9>::Zero(); // simply initiate to zero
 
     // derivative init
     df_dx.DRij_Dbg = Z3x3;
@@ -73,16 +73,15 @@ ImuPreintegration::ImuPreintegration( const ImuPreintegration& origin_IMUP )
 {
     g << 0, 0, -_g;
     delta_tij = origin_IMUP.delta_tij;
+    delta_Rij = origin_IMUP.delta_Rij;
     delta_pij = origin_IMUP.delta_pij;
     delta_vij = origin_IMUP.delta_vij;
-    bias_a = origin_IMUP.bias_a;
+    bias_a = origin_IMUP.bias_a;        // open source do not content the bias propagation
     bias_g = origin_IMUP.bias_g;
     bias_a_previous = origin_IMUP.bias_a_previous;
     bias_g_previous = origin_IMUP.bias_g_previous;
-    delta_Rij = origin_IMUP.delta_Rij;
     ResiError = origin_IMUP.ResiError;
-    IMU_cov_ij = origin_IMUP.IMU_cov_ij; // simply initiate to identity
-
+    IMU_cov_ij = origin_IMUP.IMU_cov_ij;
     // derivative init
     df_dx.DRij_Dbg = origin_IMUP.df_dx.DRij_Dbg;
     df_dx.Dpij_Dba = origin_IMUP.df_dx.Dpij_Dba;
@@ -101,11 +100,12 @@ ImuPreintegration::ImuPreintegration( const ImuPreintegration& origin_IMUP )
 void ImuPreintegration::Reset()
 {
     delta_tij = 0;
-    delta_pij = Eigen::Vector3d(0,0,0);
-    delta_vij = Eigen::Vector3d(0,0,0);
-    delta_Rij = Eigen::Matrix<double, 3, 3>::Identity();
+    delta_pij = Z3;
+    delta_vij = Z3;
+    delta_Rij = I3x3;
+
     ResiError << Z3,Z3,Z3;
-    IMU_cov_ij = Eigen::Matrix<double, 9, 9>::Identity(); // simply initiate to identity
+    IMU_cov_ij = Eigen::Matrix<double, 9, 9>::Zero(); // simply initiate to Zero
 
     df_dx.DRij_Dbg = Z3x3;
     df_dx.Dpij_Dba = Z3x3;
@@ -118,9 +118,10 @@ void ImuPreintegration::Reset()
 void ImuPreintegration::Preintegration( Eigen::Vector3d acc, Eigen::Vector3d gyro, double delta_t )
 {
 
-    delta_tij += delta_t;
     double t2_2 = delta_t*delta_t/2;
     SE3Quat exp_temp;
+
+    delta_tij += delta_t;
 
 /// correct gyro measurement with bias
     Eigen::Vector3d gyroCorrect = gyro - bias_g;
@@ -138,35 +139,21 @@ void ImuPreintegration::Preintegration( Eigen::Vector3d acc, Eigen::Vector3d gyr
     Eigen::Matrix3d accCorrect_skew = skew(accCorrect);
 
 /// incrementally update preintegration measurement noise covariance with new IMU measurements
-/// supplementary fomula A.7, format is: [delta_hpi, delta_pose, delta_velocity]
+/// supplementary fomula A.7, format is: [delta_hpi, delta_pose, delta_velocity];   ATT: others might use [p v R] or [R v p]
     int size = 9;   // dimension of Ak
-    Eigen::MatrixXd Ak(size,size), Bk(size,3), Ck(size,3);
-
-    // easy to check, TO BE delet{
-    Ak << Z3x3,Z3x3,Z3x3,Z3x3,Z3x3,Z3x3,Z3x3,Z3x3,Z3x3;
-    Bk << Z3x3,Z3x3,Z3x3;
-    Ck << Z3x3,Z3x3,Z3x3;
-    // }
-
+    Eigen::Matrix<double,9,9> Ak = Eigen::Matrix<double,9,9>::Zero();
     Ak.topLeftCorner(size/3, size/3) = Rk_k_1_T;
-    Ak.block(0,3,3,3) = Z3x3;  // from (0, 0)
-    Ak.topRightCorner(size/3, size/3) = Z3x3;
-
-    Ak.block(3,0,3,3) = -delta_Rij*accCorrect_skew*t2_2;   // here shuold have a 1/2?
+    Ak.block(3,0,3,3) = -0.5*delta_Rij*accCorrect_skew*t2_2;
     Ak.block(3,3,3,3) = I3x3;
     Ak.block(3,6,3,3) = I3x3*delta_t;
-
     Ak.bottomLeftCorner(size/3, size/3) = -delta_Rij*accCorrect_skew*delta_t;
-    Ak.block(6,3,3,3) = Z3x3;  // from (0, 0)
     Ak.bottomRightCorner(size/3, size/3) = I3x3;
 
-    Bk.topRows(3) = Z3x3;
-    Bk.middleRows(3,3) = delta_Rij*t2_2;
+    Eigen::Matrix<double,9,3> Bk = Eigen::Matrix<double,9,3>::Zero();
+    Bk.middleRows(3,3) = 0.5*delta_Rij*t2_2;
     Bk.bottomRows(3) = delta_Rij*delta_t;
-
-    Ck.topRows(3) = Jrk_k_1;
-    Ck.middleRows(3,3) = Z3x3;
-    Ck.bottomRows(3) = Z3x3;
+    Eigen::Matrix<double,9,3> Ck = Eigen::Matrix<double,9,3>::Zero();
+    Ck.topRows(3) = Jrk_k_1*delta_t;
 
 /// SIGMA of pre-mea noise
     IMU_cov_ij = Ak*IMU_cov_ij*Ak.transpose() + Bk*raw_acc_cov*Bk.transpose() + Ck*raw_gyro_cov*Ck.transpose();  // covariance of IMU_ij residual errors
@@ -179,17 +166,17 @@ void ImuPreintegration::Preintegration( Eigen::Vector3d acc, Eigen::Vector3d gyr
     Eigen::Matrix3d Dvij_Dbg = df_dx.Dvij_Dbg;
 
 /// incrementally update pre-mea derivative —— used for bias update
-    df_dx.DRij_Dbg = Rk_k_1_T * DRij_Dbg - Jrk_k_1*delta_t;
-    df_dx.Dpij_Dbg = Dpij_Dbg + Dvij_Dbg*delta_t - delta_Rij * accCorrect_skew*DRij_Dbg*t2_2;
-    df_dx.Dpij_Dba = Dpij_Dba + Dvij_Dba * delta_t - delta_Rij*t2_2;
-    df_dx.Dvij_Dbg = Dvij_Dbg - delta_Rij * accCorrect_skew*DRij_Dbg*delta_t;
+    df_dx.DRij_Dbg = Rk_k_1_T*DRij_Dbg - Jrk_k_1*delta_t;
+    df_dx.Dpij_Dbg = Dpij_Dbg + Dvij_Dbg*delta_t - 0.5*delta_Rij*accCorrect_skew*DRij_Dbg*t2_2;
+    df_dx.Dpij_Dba = Dpij_Dba + Dvij_Dba * delta_t - 0.5*delta_Rij*t2_2;
+    df_dx.Dvij_Dbg = Dvij_Dbg - delta_Rij*accCorrect_skew*DRij_Dbg*delta_t;
     df_dx.Dvij_Dba = Dvij_Dba - delta_Rij * delta_t;
 
 /// update preintegrated IMU measurements —— used to update NavState
     Eigen::Matrix3d R = delta_Rij;
     delta_Rij = delta_Rij*Rk_k_1;
-//    o.phiv_ = SO3.log(o.R_);      // avoid the use of phiv
-    delta_pij = delta_pij + delta_vij*delta_t + R*accCorrect*t2_2;    // missing 1/2 ?
+//    delta_Rij = normalizeRotationM( delta_Rij*Rk_k_1 );     // someone say that it will be better to normalize the result ? —— error accumulation; but it seems useless
+    delta_pij = delta_pij + delta_vij*delta_t + 0.5*R*accCorrect*t2_2;
     delta_vij = delta_vij + R*accCorrect*delta_t;
 
 }
@@ -221,7 +208,7 @@ void ImuPreintegration::IMUResdual_Jaccobian(Matrix3d R_i, Matrix3d R_j, Vector3
     exp_temp.setRotation(q_Rij_reserr);
     ResiError.head(3) = exp_temp.log().head(3);     // translation will not affect the rotation
     ResiError.segment(3,3) = R_i.transpose() * (v_j - v_i - g*t) - correct_ResVij;
-    ResiError.tail(3) = R_i.transpose() * (p_j - p_i - v_i*t - g*t22) - correct_Pij;  // g need 1/2 ?
+    ResiError.tail(3) = R_i.transpose() * (p_j - p_i - v_i*t - 0.5*g*t22) - correct_Pij;
 
 /// obtain Jaccobian of residual error
 /// state order is [fai, pose, velovcity]', derivative variances is [Fia_i, pi, vi, Fia_j, pj, vj, ba, bg]'
@@ -259,7 +246,7 @@ Vector9d ImuPreintegration::predict(Eigen::Matrix3d R_i, Eigen::Vector3d p_i, Ei
     // transposition of formula (31) in the paper
     Eigen::Matrix3d R = R_i*delta_Rij;
     Eigen::Vector3d v = R_i*delta_vij + v_i + g*delta_tij;
-    Eigen::Vector3d p = R_i*delta_pij + p_i + v_i*delta_tij + g*t22;    // missing 1/2?
+    Eigen::Vector3d p = R_i*delta_pij + p_i + v_i*delta_tij + 0.5*g*t22;
 
     SE3Quat se3_Liegrp(R,p);
     Vector6d se3_Liealg = se3_Liegrp.log();
@@ -316,8 +303,6 @@ Eigen::Matrix3d ImuPreintegration::Dlog(Eigen::Vector3d theta )
         JrInv = I3x3 + 0.5*phix;
     }
     else{
-        // error? according to last formula in supplementary
-        // material, it shuold be + rather than - ?
         JrInv = I3x3 + 0.5*phix + (phiinv*phiinv-(1+cos(phi))*phiinv/(2*sin(phi)))*phix*phix;
     }
     return JrInv;

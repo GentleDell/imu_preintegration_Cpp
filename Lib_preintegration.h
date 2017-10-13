@@ -21,6 +21,10 @@ class ImuPreintegration{
 
 public:
 
+/// public para
+    Eigen::Vector3d g;
+
+/// public function
     ImuPreintegration();    // default constructor
 
     ImuPreintegration( Eigen::Matrix3d acc_cov_input, Eigen::Matrix3d gyro_cov_input ); // constructor with cov input
@@ -67,8 +71,21 @@ public:
         bias_g_previous = bias_g;
     }
 
-    // public para
-    Eigen::Vector3d g;
+    inline Eigen::Quaterniond normalizeRotationQ(const Eigen::Quaterniond& quat)
+    {
+        Eigen::Quaterniond _quat(quat);
+        if (_quat.w() < 0)
+        {
+            _quat.coeffs() *= -1;
+        }
+        return _quat.normalized();
+    }
+
+    inline Eigen::Matrix3d normalizeRotationM(const Eigen::Matrix3d& R)
+    {
+        Eigen::Quaterniond quat_R(R);
+        return normalizeRotationQ(quat_R).toRotationMatrix();
+    }
 
 private:
 

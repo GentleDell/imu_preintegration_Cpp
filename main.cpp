@@ -24,7 +24,7 @@ struct Obj_State {
 
 int main(int argc, char *argv[])
 {
-    int update_step = 50;
+    int update_step = 5;
     Obj_State State_i;
     ImuPreintegration IMUP;
 
@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
     int flag_AngVel = 15, flag_LinAcc = 27, data_cont = 0;
     vector<double> simul_meas, time_seq;    // save data during a measurement
     vector< vector<double> > Imu_meas;
-    string IMUFilePath = "/home/gentle/Documents/Imu_preintegration/Imupreintegration_Test/IMUcam_RawData.txt";
+    string IMUFilePath = "/home/gentle/Documents/Imu_preintegration/Imupreintegration_Test/correct_rect.txt";
     Imudata.open( IMUFilePath.c_str() );
     while(!Imudata.eof())
     {
@@ -98,11 +98,11 @@ int main(int argc, char *argv[])
         {
             if(data_cont < 3)
             {
-                gyro(data_cont) = *it_elem;     //  x,y,z rotation velocity, coordinate: ?  (9250而言 朝向旋转轴方向y,z顺时针为负，逆时针方向为正, x相反)
+                gyro(data_cont) = *it_elem;
             }
             else
             {
-                acc(data_cont-3) = *it_elem;    //  x,y,z  coordinate: ENU or ?
+                acc(data_cont-3) = *it_elem;
             }
 
             data_cont += 1;
@@ -120,9 +120,9 @@ int main(int argc, char *argv[])
             State_i.state_j = IMUP.predict(State_i.R, State_i.p, State_i.v);
             IMUP.Reset();
 
-            r_t << State_i.state_j.head(3), 0,0,0;
+            r_t << State_i.state_j.head(6);
             State_i.R = exp_temp.exp(r_t).rotation().matrix();
-            State_i.p = State_i.state_j.segment(3,3);
+            State_i.p = exp_temp.exp(r_t).translation();
             State_i.v = State_i.state_j.tail(3);
 
             if (!f_save)
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
             }
             else
             {
-                f_save << fixed << setprecision(8) << State_i.state_j.transpose() << endl;
+                f_save << fixed << setprecision(8) << State_i.p.transpose() << endl;
             }
         }
     }
