@@ -5,6 +5,7 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
+
 #include "Lib_preintegration.h"
 #include "se3.h"
 
@@ -24,7 +25,7 @@ struct Obj_State {
 
 int main(int argc, char *argv[])
 {
-    int update_step = 5;
+    int update_step = 10;
     Obj_State State_i;
     ImuPreintegration IMUP;
 
@@ -38,7 +39,7 @@ int main(int argc, char *argv[])
     int flag_AngVel = 15, flag_LinAcc = 27, data_cont = 0;
     vector<double> simul_meas, time_seq;    // save data during a measurement
     vector< vector<double> > Imu_meas;
-    string IMUFilePath = "/home/gentle/Documents/Imu_preintegration/Imupreintegration_Test/correct_rect.txt";
+    string IMUFilePath = "/home/gentle/Documents/Imu_preintegration/Imupreintegration_Test/testdata1.txt";
     Imudata.open( IMUFilePath.c_str() );
     while(!Imudata.eof())
     {
@@ -132,7 +133,7 @@ int main(int argc, char *argv[])
             }
             else
             {
-                f_save << fixed << setprecision(8) << State_i.p.transpose() << endl;
+                f_save << fixed << setprecision(8) << State_i.state_j.transpose() << endl;
             }
         }
     }

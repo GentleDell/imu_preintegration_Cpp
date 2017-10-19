@@ -68,7 +68,7 @@ ImuPreintegration::ImuPreintegration(Eigen::Matrix3d acc_cov_input, Eigen::Matri
     raw_gyro_cov = gyro_cov_input;
 }
 
-
+// Copy
 ImuPreintegration::ImuPreintegration( const ImuPreintegration& origin_IMUP )
 {
     g << 0, 0, -_g;

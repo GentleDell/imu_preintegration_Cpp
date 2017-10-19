@@ -5,7 +5,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 
-#define _g 1
+#define _g 1.1
 
 using namespace std;
 typedef Eigen::Matrix<double, 6, 1> Vector6d;
