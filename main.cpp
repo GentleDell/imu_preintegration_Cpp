@@ -13,15 +13,6 @@ using namespace std;
 
 
 /// used to record state
-struct Obj_State {
-    Eigen::Matrix3d R;
-    Eigen::Vector3d p;
-    Eigen::Vector3d v;
-
-    Vector9d state_j;
-
-};
-
 
 int main(int argc, char *argv[])
 {

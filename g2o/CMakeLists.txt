@@ -94,6 +94,8 @@ g2o/types/types_sba.cpp
 g2o/types/types_six_dof_expmap.cpp
 g2o/types/types_seven_dof_expmap.cpp
 g2o/types/types_seven_dof_expmap.h
+g2o/types/types_IMU.cpp
+g2o/types/types_IMU.h
 g2o/types/se3quat.h
 g2o/types/se3_ops.h
 g2o/types/se3_ops.hpp

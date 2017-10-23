@@ -202,7 +202,6 @@ public:
 };
 
 
-
 } // end namespace
 
 #endif

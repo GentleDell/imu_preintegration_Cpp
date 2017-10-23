@@ -5,11 +5,6 @@ set( CMAKE_BUILD_TYPE "Debug" )
 
 #find_package( G2O REQUIRED )
 
-#INCLUDE_DIRECTORIES(
-##    "/usr/local/include/g2o/"
-#    "/usr/include/eigen3"   # Eigen
-
-#    )
 find_package(Eigen3)
 include_directories(
 ${PROJECT_SOURCE_DIR}
@@ -19,7 +14,7 @@ ${EIGEN3_INCLUDE_DIR}
 add_library( preintegration "Lib_preintegration.cpp" )
 add_library( preintegration_shared SHARED Lib_preintegration.cpp )
 
-# 优化IMU和Pose
+# 添加优化
 add_library( optimizeIMU "optimizeIMU.cpp" )
 add_library( optimizeIMU_shared SHARED optimizeIMU.cpp )
 
@@ -28,9 +23,7 @@ add_executable(${PROJECT_NAME} "main.cpp")
 
 # 将库文件链接到可执行程序上
 target_link_libraries( ${PROJECT_NAME} 
-preintegration_shared 
+preintegration_shared
 optimizeIMU_shared
 ${PROJECT_SOURCE_DIR}/g2o/lib/libg2o.so
-#g2o_core
-#g2o_stuff
 )

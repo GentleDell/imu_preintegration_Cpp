@@ -11,11 +11,13 @@ using namespace std;
 typedef Eigen::Matrix<double, 6, 1> Vector6d;
 typedef Eigen::Matrix<double, 9, 1> Vector9d;
 
+#ifndef BASIC_MATRIX
+#define BASIC_MATRIX
 Eigen::Matrix3d I3x3 = Eigen::Matrix<double, 3, 3>::Identity();
 Eigen::Matrix3d Z3x3 = Eigen::Matrix<double, 3, 3>::Zero();
 Eigen::Vector3d I3(1.0, 1.0, 1.0);
 Eigen::Vector3d Z3(0.0, 0.0, 0.0);
-
+#endif
 
 class ImuPreintegration{
 
@@ -55,14 +57,25 @@ public:
     Eigen::Matrix3d Dexp( Eigen::Vector3d theta );
     Eigen::Matrix3d Dlog( Eigen::Vector3d theta );
 
+    Eigen::Matrix3d IMUCov_read() { return IMU_cov_ij; }
+
     Eigen::Matrix3d Rij_read() { return delta_Rij; }
     Eigen::Vector3d pij_read() { return delta_pij; }
     Eigen::Vector3d vij_read() { return delta_vij; }
+    Eigen::Vector3d biasa_read() { return bias_a; }
+    Eigen::Vector3d biasg_read() { return bias_g; }
+    Eigen::Vector3d bias_prea_read() { return bias_a_previous; }
+    Eigen::Vector3d bias_preg_read() { return bias_g_previous; }
     double tij_read() { return delta_tij; }
 
     void Rij_write(Eigen::Matrix3d new_Rij) { delta_Rij = new_Rij; }
     void pij_write(Eigen::Vector3d new_pij) { delta_pij = new_pij; }
     void vij_write(Eigen::Vector3d new_vij) { delta_vij = new_vij; }
+    void biasa_write(Eigen::Vector3d new_biasa) { bias_a = new_biasa; }
+    void biasg_write(Eigen::Vector3d new_biasg) { bias_g = new_biasg; }
+    void bias_prea_write(Eigen::Vector3d new_bias_prea) { bias_a_previous = new_bias_prea; }
+    void bias_preg_write(Eigen::Vector3d new_bias_preg) { bias_g_previous = new_bias_preg; }
+    void tij_write(double new_tij) { delta_tij = new_tij; }
 
     // after every optimiztion, we will have a new bias. To compensate residualerror essily, we need compute the delta_bias, so we record last bias
     void write_bias_previous()
@@ -104,6 +117,27 @@ private:
     } df_dx;
 
     Eigen::Matrix<double, 9, 1> ResiError;
+
+
+public:
+    Derivative df_dx_read() { return df_dx; }
+    void df_dx_write(Derivative new_df_dx) { df_dx = new_df_dx; }
+
+};
+
+
+
+class  Obj_State{
+
+public:
+
+    long Id;
+
+    Eigen::Matrix3d R;
+    Eigen::Vector3d p;
+    Eigen::Vector3d v;
+
+    Vector9d state_j;
 
 };
 #endif
